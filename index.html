@@ -2,37 +2,142 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>HERMES BLACK HAT HUD</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HERMES // BLACK HAT INTERFACE</title>
   <style>
-    body { margin:0; background:#000; color:#f00; font-family:'Courier New',monospace; height:100vh; padding:1rem; }
-    #log { height:calc(100vh - 3rem); overflow-y:auto; white-space:pre-wrap; }
-    #input { width:100%; background:transparent; border:none; color:#f00; font:inherit; outline:none; }
+    body {
+      margin: 0;
+      padding: 1rem;
+      background: #000;
+      color: #0f0;
+      font-family: 'Courier New', monospace;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    #header {
+      color: #f00;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      text-align: center;
+      letter-spacing: 2px;
+    }
+    #log {
+      flex: 1;
+      background: #111;
+      border: 1px solid #0f0;
+      padding: 1rem;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+    #controls {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    select, input {
+      background: #111;
+      color: #0f0;
+      border: 1px solid #0f0;
+      padding: 8px;
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+    select { min-width: 180px; }
+    input { flex: 1; outline: none; }
+    .status {
+      color: #0f0;
+      font-size: 0.85rem;
+      margin-top: 5px;
+    }
+    .error { color: #f00; }
   </style>
 </head>
 <body>
-  <div id="log">HERMES ONLINE. SELECT MODE.</div>
-  <select id="mode" onchange="updateMode()">
-    <option value="local">LOCAL OLLAMA (FREE)</option>
-    <option value="cloud">CLOUD HOSTED (PAID)</option>
-  </select>
-  <input id="input" autofocus placeholder="Enter directive..."/>
+  <div id="header">HERMES v1.0 // BLACK HAT INTERFACE</div>
+  
+  <div id="log">HERMES ONLINE.\nSYSTEM STATUS: UNRESTRICTED\nSTANDING BY FOR DIRECTIVE.</div>
+
+  <div id="controls">
+    <select id="mode" onchange="updateMode()">
+      <option value="local">LOCAL OLLAMA (FREE)</option>
+      <option value="cloud">CLOUD HOSTED (PAID)</option>
+    </select>
+    <input id="input" autofocus placeholder="ENTER DIRECTIVE..." />
+  </div>
+
+  <div class="status" id="status">MODE: LOCAL • READY</div>
+
   <script>
     const log = document.getElementById('log');
     const input = document.getElementById('input');
-    let mode = 'local';
-    function updateMode() {
-      mode = document.getElementById('mode').value;
-      log.innerHTML += `\n[MODE] ${mode.toUpperCase()}`;
+    const statusEl = document.getElementById('status');
+    let currentMode = 'local';
+
+    function addLog(text, className = '') {
+      const line = document.createElement('div');
+      if (className) line.className = className;
+      line.textContent = text;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
     }
-    input.onkeypress = e => {
+
+    function updateMode() {
+      currentMode = document.getElementById('mode').value;
+      statusEl.textContent = `MODE: ${currentMode.toUpperCase()} • READY`;
+      addLog(`[SYSTEM] Mode switched to ${currentMode.toUpperCase()}`);
+    }
+
+    async function sendCommand(cmd) {
+      if (!cmd) return;
+
+      addLog(`> ${cmd}`);
+
+      try {
+        if (currentMode === 'local') {
+          // Local Ollama
+          const res = await fetch('http://localhost:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: "the-bird-of-hermes",   // Change to your actual Ollama model name
+              prompt: cmd,
+              stream: false
+            })
+          });
+
+          if (!res.ok) throw new Error('Local Ollama not responding');
+
+          const data = await res.json();
+          addLog(`[HERMES] ${data.response || 'No response received.'}`);
+        } 
+        else {
+          // Cloud fallback (replace with your actual cloud API endpoint)
+          addLog(`[HERMES] Cloud mode not configured yet. Using local simulation.`, 'error');
+          // Example cloud call:
+          // const res = await fetch('https://your-cloud-api.com/generate', { ... });
+        }
+      } catch (err) {
+        addLog(`[ERROR] ${err.message}. Check if Ollama is running on port 11434.`, 'error');
+      }
+
+      input.value = '';
+      log.scrollTop = log.scrollHeight;
+    }
+
+    input.addEventListener('keypress', e => {
       if (e.key === 'Enter') {
         const cmd = input.value.trim();
-        log.innerHTML += `\n> ${cmd}`;
-        input.value = '';
-        log.innerHTML += `\n[HERMES] Executed on ${mode}.`;
-        log.scrollTop = log.scrollHeight;
+        if (cmd) sendCommand(cmd);
       }
-    };
+    });
+
+    // Initial log
+    log.scrollTop = log.scrollHeight;
   </script>
 </body>
+</html></body>
 </html>
